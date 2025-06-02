@@ -1,0 +1,29 @@
+# Ignora a base de dados
+database/*.db
+database/*.wal  # caso esteja usando write-ahead logging
+
+# Ignora os dados brutos e transformados
+data/
+!data/.gitkeep  # mantem a pasta no repositório
+dados/
+!dados/.gitkeep  # mantem a pasta no repositório
+
+# Ignora arquivos CSV, JSON, Parquet soltos
+*.csv
+*.json
+*.parquet
+*.xlsx
+*.db
+
+# Ignora arquivos temporários ou logs
+*.log
+*.tmp
+
+# Ignora ambientes R e Python (opcional)
+.Rhistory
+.RData
+.Rproj.user/
+renv/library/
+__pycache__/
+.env
+.venv/
