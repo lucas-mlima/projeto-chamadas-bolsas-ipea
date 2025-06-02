@@ -148,7 +148,7 @@ def run():
         # Salvar em parquet
         try:
             pq.write_table(pa.Table.from_pandas(dataframe_chamadas), output_path)
-            logger.info("Dataframe salvo com sucesso em 'chamadas_bolsas_ipea.parquet'")
+            logger.info("Dataframe salvo com sucesso em 'chamadas_bolsas_ipea_bronze.parquet'")
         except Exception as e:
             logger.error(f"Erro ao salvar o dataframe em .parquet: {e}")
     else:
