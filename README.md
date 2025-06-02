@@ -12,3 +12,26 @@
 
 ## Ferramentas
 - Python
+- BeatifulSoup
+- Parquet
+- Logging
+
+
+
+
+```plaintext
+.
+├── data/
+│   ├── chamadas_bolsas_ipea_bronze.parquet
+│   ├── chamadas_bolsas_ipea_silver.parquet
+│   ├── chamadas_bolsas_ipea_gold.parquet
+│   └── usuarios_bot.json  
+│
+├── scripts/                 
+│   ├── webscrapper_editais.py
+│   ├── tratamento_dados.py
+│   └── bot_editais.py     
+│
+├── credenciais.json
+└── README.md             
+```
