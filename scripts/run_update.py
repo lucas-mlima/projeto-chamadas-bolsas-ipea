@@ -4,7 +4,7 @@ import importlib
 import traceback
 
 # --- Configurações --- 
-SCRAPER_MODULE_NAME = "webscrapper_editais"  # Nome do arquivo .py sem a extensão
+SCRAPER_MODULE_NAME = "webscraper_editais"  # Nome do arquivo .py sem a extensão
 INTERVAL_HOURS = 6
 INTERVAL_SECONDS = INTERVAL_HOURS * 60 * 60
 
