@@ -12,6 +12,7 @@
 
 
 ## Resultados Preliminares
+- POC valida a hipótese que podemos implementar um bot de envio automático de mensagens instantâneas com os novos editais de bolsas do IPEA
 
 
 ## Como usar: passo a passo
@@ -40,8 +41,7 @@
   - Não temos encapsulamento da solução como um todo.
 
 
-
-
+## Estrutura do projeto
 
 ```plaintext
 .
