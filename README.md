@@ -32,9 +32,14 @@
 - /link <numero> - Obtém o link do edital (ex: /link 33).
 - /abertos - Lista os editais com inscrições abertas.
 
-## Avisos
+## Avisos de uso
 
-- O Bot não está otimizado, ainda apresenta gargalos de performance nas respostas aos comandos, principalmente o tempo de resposta. Caso ocorrá demora em reponder algum comando, mandar um segunda vez para forçar a fila andar, depois do segundo envio só esperar. 
+- O Bot não está otimizado, ainda apresenta gargalos de performance nas respostas aos comandos, principalmente o tempo de resposta. Caso ocorrá demora em reponder algum comando, mandar um segunda vez para forçar a fila andar, depois do segundo envio só esperar;
+- Informações serão atualizadas a cada 6 horas. 
+
+
+## Avisos POC
+
 - O Bot é uma POC, então foi feito considerando o esforço e recursos minímios para sua implementação, por isso algumas decisões foram tomadas desconsiderando o que seria impeditivo ou apenas por performance, como:
   - Não temos um servidor para hospedar nosso bot, esse bot roda localmente, que não é uma solução robusta;
   - Usamos arquivo .json para controlar usuários, o ideal seria um banco de dados Redis, considerando que poderemos ter centenas ou milhares de usuários simultâneos;
@@ -54,7 +59,8 @@
 ├── scripts/                 
 │   ├── webscrapper_editais.py              # Web scrapper que coleta e armazenamento das chamadas
 │   ├── tratamento_dados.py                 # Tratamento da camada bronze a gold
-│   └── bot_editais.py                      # Bot no Telegram com envios de alertas e algumas features
+│   ├── bot_editais.py                      # Bot no Telegram com envios de alertas e algumas features
+│   └── run_update.py                       # Rodar periodicamente a coleta e tratamento
 │
 │
 ├── credenciais.json                        # arquivo com todas as credenciais necessárias 
