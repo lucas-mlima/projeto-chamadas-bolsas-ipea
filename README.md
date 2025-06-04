@@ -51,13 +51,13 @@
 ```plaintext
 .
 ├── data/
-│   ├── chamadas_bolsas_ipea_bronze.parquet # Dados coletados do webscrapper (camada bronze)
+│   ├── chamadas_bolsas_ipea_bronze.parquet # Dados coletados do web scraper (camada bronze)
 │   ├── chamadas_bolsas_ipea_silver.parquet # Dados tratados e enriquecidos (camada silver)
 │   ├── chamadas_bolsas_ipea_gold.parquet   # Dados tratados e enriquecidos (camada gold)
 │   └── usuarios_bot.json                   # Arquivo informações de usuário
 │
 ├── scripts/                 
-│   ├── webscrapper_editais.py              # Web scrapper que coleta e armazenamento das chamadas
+│   ├── webscraper_editais.py               # Web scraper que coleta e armazenamento das chamadas
 │   ├── tratamento_dados.py                 # Tratamento da camada bronze a gold
 │   ├── bot_editais.py                      # Bot no Telegram com envios de alertas e algumas features
 │   └── run_update.py                       # Rodar periodicamente a coleta e tratamento
