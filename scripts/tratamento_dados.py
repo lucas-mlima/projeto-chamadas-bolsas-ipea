@@ -40,7 +40,7 @@ def processar_parquet(file_path: Path):
 
         # Criando novas colunas
         df[['dt_inicio', 'dt_fim']] = df['periodo_inscricao'].str.split(' à ', expand=True)
-        df['dt_hoje'] = pd.to_datetime(datetime.date.today())
+        #df['dt_hoje'] = pd.to_datetime(datetime.date.today())
         df['dt_hoje'] = pd.to_datetime(datetime.datetime.now())
 
         # Converter para datetime se desejar
