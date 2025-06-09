@@ -1,27 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Bot do Telegram para monitorar e consultar editais de bolsas do IPEA (Versão Revisada).
 
-Este script implementa as funcionalidades solicitadas com melhorias em:
-- Carregamento de dados (cache simples).
-- Tratamento de erros.
-- Logging básico.
-- Gerenciamento de usuários (dicionário).
-- Formatação de tempo restante.
-
-**Pré-requisitos:**
-- Python 3.x
-- Bibliotecas: python-telegram-bot, pandas, pyarrow
-- Arquivo Parquet com dados dos editais (definido em PARQUET_FILE).
-- Arquivo JSON com token do Telegram (definido em CREDENCIAIS_PATH).
-
-**Como usar:**
-1. Instale as bibliotecas: pip install python-telegram-bot pandas pyarrow
-2. Crie o arquivo credenciais.json no mesmo diretório com o conteúdo: {"TELEGRAM_TOKEN": "SEU_TOKEN_AQUI"}
-3. Coloque o arquivo .parquet no caminho especificado por PARQUET_FILE.
-4. Execute o script: python bot_editais_v2.py
-5. Interaja com o bot no Telegram.
-"""
 
 import pandas as pd
 import json
