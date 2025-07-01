@@ -15,7 +15,7 @@ output_dir = Path("./data/")
 output_dir.mkdir(parents=True, exist_ok=True)
 
 # Arquivo de saída
-output_path = output_dir / f"chamadas_bolsas_ipea.parquet"
+output_path = output_dir / f"chamadas_bolsas_ipea_bronze.parquet"
 
 
 # Funções principais

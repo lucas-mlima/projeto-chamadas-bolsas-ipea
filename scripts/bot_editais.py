@@ -9,11 +9,14 @@ from telegram import Update, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Application
 from datetime import datetime
 import time
+import asyncio
+from pathlib import Path
 
 # --- Configurações --- 
 CREDENCIAIS_PATH = "./credenciais.json"
 DATAFILE = "./data/chamadas_bolsas_ipea_gold.parquet" 
 USER_DB = "./data/usuarios_bot.json" 
+ALERTED_EDITAIS_DB = "./data/alerted_editais.json"
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -26,6 +29,8 @@ last_load_time = 0
 last_mod_time = 0
 CACHE_DURATION = 60 # Segundos - Recarrega o Parquet se mais antigo que isso ou se modificado
 
+# Variável para controlar o loop de verificação
+checking_active = True
 
 # --- Funções Auxiliares --- 
 
@@ -119,6 +124,26 @@ def save_users(users_dict):
     except IOError as e:
         logger.error(f"Erro ao salvar JSON de usuários {USER_DB}: {e}")
 
+def load_alerted_editais():
+    """Carrega os editais já alertados do JSON."""
+    if not os.path.exists(ALERTED_EDITAIS_DB):
+        return []
+    try:
+        with open(ALERTED_EDITAIS_DB, "r", encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        logger.error(f"Erro ao carregar JSON de editais alertados {ALERTED_EDITAIS_DB}: {e}. Retornando vazio.")
+        return []
+
+def save_alerted_editais(alerted_list):
+    """Salva a lista de editais alertados no JSON."""
+    try:
+        with open(ALERTED_EDITAIS_DB, "w", encoding='utf-8') as f:
+            json.dump(alerted_list, f, ensure_ascii=False, indent=4)
+    except IOError as e:
+        logger.error(f"Erro ao salvar JSON de editais alertados {ALERTED_EDITAIS_DB}: {e}")
+
+
 def format_remaining_time(total_hours):
     """Formata horas em dias e horas de forma mais legível."""
     if total_hours <= 0:
@@ -146,6 +171,7 @@ def format_remaining_time(total_hours):
         logger.warning(f"Erro ao formatar horas {total_hours}: {e}")
         return "Erro"
 
+        
 # --- Handlers dos Comandos --- 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -301,44 +327,92 @@ async def editais_abertos(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 
-# --- Função para Alerta (Externa) --- 
-# Mantida como no original, mas com logging e usando o token carregado
-def enviar_alerta_novos_editais(novos_editais, telegram_token):
-    """Envia alerta para usuários ativos. Deve ser chamada externamente."""
-    if not novos_editais:
-        logger.info("Nenhum novo edital fornecido para alerta.")
-        return
-        
-    usuarios = load_users()
-    active_users_ids = [user_id for user_id, active in usuarios.items() if active]
+# --- Função para Alerta ---
+async def check_for_new_editais(app: Application):
+    """Função que verifica novos editais e envia alertas agrupados."""
+    global checking_active
     
-    if not active_users_ids:
-        logger.info("Nenhum usuário ativo para receber alertas.")
-        return
-        
-    if not telegram_token:
-         logger.error("Token do Telegram não disponível para enviar alertas.")
-         return
-         
-    bot = Bot(token=telegram_token)
-    logger.info(f"Enviando alertas sobre {len(novos_editais)} edital(is) para {len(active_users_ids)} usuário(s)...")
-    
-    for user_id in active_users_ids:
-        try:
-            for edital in novos_editais: # Envia uma msg por edital?
-                num = edital.get('numero_chamada', '?')
-                ano = edital.get('ano_chamada', '?')
-                link = edital.get('link_chamada', 'N/A')
-                msg = f"📢 Novo edital publicado: *{num}/{ano}*\n🔗 Link: {link}"
-                # Usar asyncio para enviar mensagens pode ser mais eficiente se muitos usuários/mensagens
-                # Mas para simplicidade, chamadas síncronas aqui (requer `pip install nest_asyncio` se chamado de contexto async)
-                # Ou melhor, adaptar para ser chamada de dentro do loop async do bot se for integrado
-                bot.send_message(chat_id=user_id, text=msg, parse_mode='Markdown')
-            logger.debug(f"Alerta(s) enviado(s) para {user_id}")
-        except Exception as e:
-            logger.error(f"Falha ao enviar alerta para {user_id}: {e}")
-            # Considerar marcar usuário como inativo se erro persistir?
+    while checking_active:
+        logger.info("Verificando novos editais...")
+        df_current = load_data_with_cache()
+        if df_current is None or df_current.empty:
+            logger.warning("Não foi possível carregar dados para verificar novos editais.")
+            await asyncio.sleep(3600)
+            continue
 
+        alerted_editais = load_alerted_editais()
+        new_editais_to_alert = []
+
+        # Criar um conjunto de editais já alertados para busca eficiente
+        alerted_set = set((e['numero_chamada'], e['ano_chamada']) for e in alerted_editais)
+
+        for _, row in df_current.iterrows():
+            num = row.get('numero_chamada')
+            ano = row.get('ano_chamada')
+            link = row.get('link_chamada')
+
+            if num and ano and (num, ano) not in alerted_set:
+                new_editais_to_alert.append({
+                    'numero_chamada': num,
+                    'ano_chamada': ano,
+                    'link_chamada': link
+                })
+                alerted_editais.append({'numero_chamada': num, 'ano_chamada': ano})
+
+        if new_editais_to_alert:
+            logger.info(f"Encontrados {len(new_editais_to_alert)} novos edital(is).")
+            
+            # Agrupa todos os novos editais em uma única mensagem
+            usuarios = load_users()
+            active_users_ids = [user_id for user_id, active in usuarios.items() if active]
+            
+            if not active_users_ids:
+                logger.info("Nenhum usuário ativo para receber alertas de novos editais.")
+            else:
+                # Prepara mensagem consolidada
+                if len(new_editais_to_alert) == 1:
+                    # Mensagem única para um único edital
+                    edital = new_editais_to_alert[0]
+                    msg = (
+                        "📢 *NOVO EDITAL PUBLICADO*\n\n"
+                        f"Edital nº *{edital['numero_chamada']}/{edital['ano_chamada']}*\n"
+                        f"🔗 Link: {edital['link_chamada']}"
+                    )
+                else:
+                    # Mensagem consolidada para múltiplos editais
+                    editais_list = "\n".join(
+                        f"• Edital {edital['numero_chamada']}/{edital['ano_chamada']}\n  🔗 {edital['link_chamada']}"
+                        for edital in new_editais_to_alert
+                    )
+                    msg = (
+                        f"📢 *{len(new_editais_to_alert)} NOVOS EDITAIS PUBLICADOS*\n\n"
+                        f"{editais_list}"
+                    )
+
+                # Envia a mensagem para todos os usuários ativos
+                for user_id in active_users_ids:
+                    try:
+                        await app.bot.send_message(
+                            chat_id=user_id,
+                            text=msg,
+                            parse_mode='Markdown',
+                            disable_web_page_preview=True  # Evita pré-visualização de links
+                        )
+                        logger.debug(f"Alerta de novo(s) edital(is) enviado para {user_id}")
+                    except Exception as e:
+                        logger.error(f"Falha ao enviar alerta para {user_id}: {e}")
+
+            save_alerted_editais(alerted_editais)
+        else:
+            logger.info("Nenhum novo edital encontrado.")
+        
+        await asyncio.sleep(3600)
+
+async def shutdown(application: Application):
+    """Função para desligar o bot corretamente."""
+    global checking_active
+    checking_active = False
+    logger.info("Desligando o bot...")
 
 
 # --- Função Principal do Bot --- 
@@ -363,11 +437,27 @@ def main():
     
     # Adicionar outros handlers se necessário (e.g., para /verificar_novos se integrado)
 
+      # Configura o shutdown handler
+    application.add_handler(CommandHandler("shutdown", lambda u, c: shutdown(application)))
+
+    # Cria e inicia a tarefa de verificação de novos editais
+    loop = asyncio.get_event_loop()
+    check_task = loop.create_task(check_for_new_editais(application))
+
     # Inicia o Bot
     logger.info("Iniciando o bot...")
-    application.run_polling()
-    logger.info("Bot encerrado.") # Só será logado se run_polling parar
+    logger.info("Pressione Ctrl+C para parar.")
+    
+    try:
+        application.run_polling()
+    except KeyboardInterrupt:
+        logger.info("Recebido sinal de interrupção. Encerrando...")
+    finally:
+        checking_active = False
+        if not check_task.done():
+            check_task.cancel()
+        logger.info("Bot encerrado.")
+
 
 if __name__ == "__main__":
     main()
-

@@ -5,8 +5,8 @@ import traceback
 
 # --- Configurações --- 
 SCRAPER_MODULE_NAME = "webscraper_editais"  # Nome do arquivo .py sem a extensão
-INTERVAL_HOURS = 6
-INTERVAL_SECONDS = INTERVAL_HOURS * 60 * 60
+INTERVAL_HOURS = 1
+INTERVAL_SECONDS = (INTERVAL_HOURS * 60 * 60)#/60
 
 # Configuração de logging
 logging.basicConfig(
@@ -43,6 +43,18 @@ def run_scheduler():
             # Chama a função main do scraper importado
             scraper_module.main()
             logger.info(f"--- Execução do {SCRAPER_MODULE_NAME}.main() concluída com sucesso ---")
+
+            try:
+                logger.info(f"--- Iniciando execução do tratamento_dados.main() ---")
+                # Chama a função main importado
+                scraper_module2 = importlib.import_module('tratamento_dados')
+                scraper_module2.main()
+                logger.info(f"--- Execução do tratamento_dados.main() concluída com sucesso ---")
+
+            except Exception as e:
+                logger.error(f"!!! Erro durante a execução do tratamento_dados.main(): {e} !!!")
+                logger.error(traceback.format_exc()) # Loga o traceback completo do erro
+                logger.info("Continuando para a próxima execução agendada apesar do erro.")
 
         except Exception as e:
             logger.error(f"!!! Erro durante a execução do {SCRAPER_MODULE_NAME}.main(): {e} !!!")
